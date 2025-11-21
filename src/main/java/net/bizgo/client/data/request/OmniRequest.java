@@ -11,7 +11,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import net.bizgo.client.core.exception.MissingFieldException;
 import net.bizgo.client.core.exception.UnexpectedException;
 import net.bizgo.client.data.request.common.Destination;
-import net.bizgo.client.data.request.message.*;
+import net.bizgo.client.data.request.message.AlimtalkMessage;
+import net.bizgo.client.data.request.message.BrandMessage;
+import net.bizgo.client.data.request.message.InternationalMessage;
+import net.bizgo.client.data.request.message.MmsMessage;
+import net.bizgo.client.data.request.message.RcsMessage;
+import net.bizgo.client.data.request.message.SmsMessage;
 
 @JsonInclude(value = JsonInclude.Include.NON_EMPTY)
 public final class OmniRequest {
@@ -29,7 +34,7 @@ public final class OmniRequest {
 		this.destinations = builder.destinations;
 		this.messageFlow = builder.messageFlow;
 		this.paymentCode = builder.paymentCode;
-		this.groupKey = builder().groupKey;
+		this.groupKey = builder.groupKey;
 		this.idempotencyKey = builder.idempotencyKey;
 		this.idempotencyTtl = builder.idempotencyTtl;
 		this.ref = builder.ref;
@@ -52,17 +57,17 @@ public final class OmniRequest {
 
 	@JsonProperty("groupKey")
 	public String getGroupKey() {
-		return paymentCode;
+		return groupKey;
 	}
 
 	@JsonProperty("idempotencyKey")
 	public String getIdempotencyKey() {
-		return paymentCode;
+		return idempotencyKey;
 	}
 
 	@JsonProperty("idempotencyTtl")
 	public String getIdempotencyTtl() {
-		return paymentCode;
+		return idempotencyTtl;
 	}
 
 	@JsonProperty("ref")

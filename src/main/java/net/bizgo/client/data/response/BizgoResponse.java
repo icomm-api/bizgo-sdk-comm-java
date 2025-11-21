@@ -3,14 +3,15 @@ package net.bizgo.client.data.response;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import net.bizgo.client.core.exception.ResponseParseException;
 import net.bizgo.client.data.response.common.CommResponse;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class MarsResponse {
+public class BizgoResponse {
 
     private CommResponse common;
-    private OmniResponse data;
+    private DataResponse data;
 
 
     public CommResponse getCommon() {
@@ -21,18 +22,18 @@ public class MarsResponse {
         this.common = common;
     }
 
-    public OmniResponse getData() {
+    public DataResponse getData() {
         return data;
     }
 
-    public void setData(OmniResponse data) {
+    public void setData(DataResponse data) {
         this.data = data;
     }
 
-    public static MarsResponse fromJson(String s) {
+    public static BizgoResponse fromJson(String s) {
         try {
             ObjectMapper mapper = new ObjectMapper();
-            return mapper.readValue(s, MarsResponse.class);
+            return mapper.readValue(s, BizgoResponse.class);
         } catch (JsonProcessingException e) {
             throw new ResponseParseException("Failed to produce MarsResponse from json.", e);
         }

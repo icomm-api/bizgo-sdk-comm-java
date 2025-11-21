@@ -1,12 +1,11 @@
 package net.bizgo.client.data.response;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import java.util.ArrayList;
-import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class OmniResponse {
+public class DataResponse {
 
     private String code;
     private String result;

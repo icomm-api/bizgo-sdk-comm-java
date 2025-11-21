@@ -1,15 +1,16 @@
 package net.bizgo.client.service.report;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.RequestBuilder;
+
 import net.bizgo.client.core.AbstractMethod;
 import net.bizgo.client.core.HttpWrapper;
 import net.bizgo.client.core.exception.ErrorResponseException;
 import net.bizgo.client.data.request.ReportInquiryRequest;
-import net.bizgo.client.data.response.MarsResponse;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.RequestBuilder;
-
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import net.bizgo.client.data.response.BizgoResponse;
 
 /**
  * ReportInquiryService 클래스는 리포트 조회 서비스와 관련된 작업을 처리합니다.
@@ -19,7 +20,7 @@ import java.io.UnsupportedEncodingException;
  * @version 1.0
  * @since 2023-07-13
  */
-public class ReportInquiryService extends AbstractMethod<ReportInquiryRequest, MarsResponse> {
+public class ReportInquiryService extends AbstractMethod<ReportInquiryRequest, BizgoResponse> {
 
     /**
      * 리포트 조회 서비스의 경로를 지정하는 상수입니다.
@@ -58,10 +59,10 @@ public class ReportInquiryService extends AbstractMethod<ReportInquiryRequest, M
      * @throws IOException 읽기/쓰기 오류가 발생하는 경우 발생하는 예외입니다.
      */
     @Override
-    public MarsResponse parseResponse(HttpResponse response) throws IOException {
+    public BizgoResponse parseResponse(HttpResponse response) throws IOException {
         int statusCode = response.getStatusLine().getStatusCode();
 		if (statusCode == 200) {
-			return MarsResponse.fromJson(basicResponseHandler.handleResponse(response));
+			return BizgoResponse.fromJson(basicResponseHandler.handleResponse(response));
 		}
 		else {
 			throw ErrorResponseException.fromHttpResponse(response);

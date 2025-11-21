@@ -3,7 +3,6 @@ package net.bizgo.client.service.regi;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
-import net.bizgo.client.data.response.MarsResponse;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.entity.ContentType;
@@ -15,6 +14,7 @@ import net.bizgo.client.core.AbstractMethod;
 import net.bizgo.client.core.HttpWrapper;
 import net.bizgo.client.core.exception.ErrorResponseException;
 import net.bizgo.client.data.request.FileRequest;
+import net.bizgo.client.data.response.BizgoResponse;
 
 /**
  * FileService 클래스는 파일 서비스와 관련된 작업을 처리합니다.
@@ -24,7 +24,7 @@ import net.bizgo.client.data.request.FileRequest;
  * @version 1.0
  * @since 2023-07-13
  */
-public class FileService extends AbstractMethod<FileRequest, MarsResponse> {
+public class FileService extends AbstractMethod<FileRequest, BizgoResponse> {
 
     /**
      * 파일 서비스의 경로를 지정하는 상수입니다.
@@ -90,10 +90,10 @@ public class FileService extends AbstractMethod<FileRequest, MarsResponse> {
      * @throws IOException 읽기/쓰기 오류가 발생하는 경우 발생하는 예외입니다.
      */
     @Override
-    public MarsResponse parseResponse(HttpResponse response) throws IOException {
+    public BizgoResponse parseResponse(HttpResponse response) throws IOException {
         int statusCode = response.getStatusLine().getStatusCode();
 		if (statusCode == 200) {
-			return MarsResponse.fromJson(basicResponseHandler.handleResponse(response));
+			return BizgoResponse.fromJson(basicResponseHandler.handleResponse(response));
 		}
 		else {
 			throw ErrorResponseException.fromHttpResponse(response);

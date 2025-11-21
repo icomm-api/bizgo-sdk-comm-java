@@ -1,13 +1,14 @@
 package net.bizgo.client.service.report;
 
-import net.bizgo.client.core.HttpWrapper;
-import net.bizgo.client.core.exception.ErrorResponseException;
-import net.bizgo.client.data.response.MarsResponse;
+import java.io.IOException;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.BasicResponseHandler;
 
-import java.io.IOException;
+import net.bizgo.client.core.HttpWrapper;
+import net.bizgo.client.core.exception.ErrorResponseException;
+import net.bizgo.client.data.response.BizgoResponse;
 
 /**
  * MessageStatusInquiryService handles message status inquiry.
@@ -36,7 +37,7 @@ public class MessageStatusInquiryService {
      * @return MarsResponse containing message status data
      * @throws Exception if inquiry fails
      */
-    public MarsResponse inquireByMsgKey(String msgKey) throws Exception {
+    public BizgoResponse inquireByMsgKey(String msgKey) throws Exception {
         if (msgKey == null || msgKey.isEmpty()) {
             throw new IllegalArgumentException("msgKey must not be null or empty");
         }
@@ -56,7 +57,7 @@ public class MessageStatusInquiryService {
      * @return MarsResponse containing message status data
      * @throws Exception if inquiry fails
      */
-    public MarsResponse inquireByRequestId(String requestId) throws Exception {
+    public BizgoResponse inquireByRequestId(String requestId) throws Exception {
         if (requestId == null || requestId.isEmpty()) {
             throw new IllegalArgumentException("requestId must not be null or empty");
         }
@@ -67,7 +68,7 @@ public class MessageStatusInquiryService {
         return executeRequest(url);
     }
 
-    private MarsResponse executeRequest(String url) throws Exception {
+    private BizgoResponse executeRequest(String url) throws Exception {
         try {
             HttpGet httpGet = new HttpGet(url);
             
@@ -76,7 +77,7 @@ public class MessageStatusInquiryService {
             int statusCode = response.getStatusLine().getStatusCode();
             if (statusCode == 200) {
                 String responseBody = basicResponseHandler.handleResponse(response);
-                return MarsResponse.fromJson(responseBody);
+                return BizgoResponse.fromJson(responseBody);
             } else {
                 throw ErrorResponseException.fromHttpResponse(response);
             }

@@ -1,15 +1,16 @@
 package net.bizgo.client.service.report;
 
-import net.bizgo.client.core.HttpWrapper;
-import net.bizgo.client.core.exception.ErrorResponseException;
-import net.bizgo.client.data.response.MarsResponse;
+import java.io.IOException;
+import java.net.URISyntaxException;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.BasicResponseHandler;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
+import net.bizgo.client.core.HttpWrapper;
+import net.bizgo.client.core.exception.ErrorResponseException;
+import net.bizgo.client.data.response.BizgoResponse;
 
 /**
  * MessageStatisticsInquiryService handles message sending statistics inquiry.
@@ -37,7 +38,7 @@ public class MessageStatisticsInquiryService {
      * @return MarsResponse containing statistics data
      * @throws Exception if inquiry fails
      */
-    public MarsResponse inquire(String startDate) throws Exception {
+    public BizgoResponse inquire(String startDate) throws Exception {
         return inquire(startDate, null, null, null);
     }
 
@@ -49,7 +50,7 @@ public class MessageStatisticsInquiryService {
      * @return MarsResponse containing statistics data
      * @throws Exception if inquiry fails
      */
-    public MarsResponse inquire(String startDate, String endDate) throws Exception {
+    public BizgoResponse inquire(String startDate, String endDate) throws Exception {
         return inquire(startDate, endDate, null, null);
     }
 
@@ -63,7 +64,7 @@ public class MessageStatisticsInquiryService {
      * @return MarsResponse containing statistics data
      * @throws Exception if inquiry fails
      */
-    public MarsResponse inquire(String startDate, String endDate, String serviceType, String groupKey) 
+    public BizgoResponse inquire(String startDate, String endDate, String serviceType, String groupKey) 
             throws Exception {
         if (startDate == null || startDate.isEmpty()) {
             throw new IllegalArgumentException("startDate must not be null or empty");
@@ -92,7 +93,7 @@ public class MessageStatisticsInquiryService {
             int statusCode = response.getStatusLine().getStatusCode();
             if (statusCode == 200) {
                 String responseBody = basicResponseHandler.handleResponse(response);
-                return MarsResponse.fromJson(responseBody);
+                return BizgoResponse.fromJson(responseBody);
             } else {
                 throw ErrorResponseException.fromHttpResponse(response);
             }

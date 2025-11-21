@@ -1,15 +1,16 @@
 package net.bizgo.client.service.report;
 
-import net.bizgo.client.core.HttpWrapper;
-import net.bizgo.client.core.exception.ErrorResponseException;
-import net.bizgo.client.data.response.MarsResponse;
+import java.io.IOException;
+import java.net.URISyntaxException;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.BasicResponseHandler;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
+import net.bizgo.client.core.HttpWrapper;
+import net.bizgo.client.core.exception.ErrorResponseException;
+import net.bizgo.client.data.response.BizgoResponse;
 
 /**
  * MessageHistoryInquiryService handles message sending history inquiry.
@@ -37,7 +38,7 @@ public class MessageHistoryInquiryService {
      * @return MarsResponse containing message history data
      * @throws Exception if inquiry fails
      */
-    public MarsResponse inquire(String requestTime) throws Exception {
+    public BizgoResponse inquire(String requestTime) throws Exception {
         return inquire(requestTime, null, null, null, null);
     }
 
@@ -49,7 +50,7 @@ public class MessageHistoryInquiryService {
      * @return MarsResponse containing message history data
      * @throws Exception if inquiry fails
      */
-    public MarsResponse inquire(String requestTime, String serviceType) throws Exception {
+    public BizgoResponse inquire(String requestTime, String serviceType) throws Exception {
         return inquire(requestTime, serviceType, null, null, null);
     }
 
@@ -64,7 +65,7 @@ public class MessageHistoryInquiryService {
      * @return MarsResponse containing message history data
      * @throws Exception if inquiry fails
      */
-    public MarsResponse inquire(String requestTime, String serviceType, String groupKey, 
+    public BizgoResponse inquire(String requestTime, String serviceType, String groupKey, 
                                          String lastSeq, Integer limit) throws Exception {
         if (requestTime == null || requestTime.isEmpty()) {
             throw new IllegalArgumentException("requestTime must not be null or empty");
@@ -97,7 +98,7 @@ public class MessageHistoryInquiryService {
             int statusCode = response.getStatusLine().getStatusCode();
             if (statusCode == 200) {
                 String responseBody = basicResponseHandler.handleResponse(response);
-                return MarsResponse.fromJson(responseBody);
+                return BizgoResponse.fromJson(responseBody);
             } else {
                 throw ErrorResponseException.fromHttpResponse(response);
             }

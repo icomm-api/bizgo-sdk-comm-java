@@ -3,7 +3,7 @@
 이 레포지토리는 인포뱅크의 **Bizgo Communication API(이하 OMNI API) (통합 메시지 API)** 연동을 위한 **Java용 공식 SDK**입니다.  
 Java 환경에서 쉽고 빠르게 통합 메시지 전송 기능(SMS, LMS, MMS, RCS, 알림톡, 친구톡, 브랜드메시지 등)을 구현할 수 있도록 도와줍니다.
 
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.icomm-api/infobank-omni-sdk-java.svg)](https://central.sonatype.com/artifact/io.github.icomm-api/infobank-omni-sdk-java)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.icomm-api/bizgo-sdk-comm-java.svg)](https://central.sonatype.com/artifact/io.github.icomm-api/bizgo-sdk-comm-java)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE.txt)
 [![Java](https://img.shields.io/badge/Java-8%2B-orange.svg)](https://www.oracle.com/java/technologies/javase-downloads.html)
 
@@ -14,13 +14,13 @@ Java 환경에서 쉽고 빠르게 통합 메시지 전송 기능(SMS, LMS, MMS,
 ### 1. SDK 설치
 
 ```gradle
-implementation 'io.github.icomm-api:infobank-omni-sdk-java:2.0.0'
+implementation 'io.github.icomm-api:bizgo-sdk-comm-java:1.0.0'
 ```
 
 ### 2. Client 생성
 
 ```java
-InfobankClient client = InfobankClient.builder()
+BizgoClient client = BizgoClient.builder()
   .apiKey("YOUR_API_KEY")
   .build();
 ```
@@ -39,7 +39,7 @@ OmniRequest request = OmniRequest.builder()
   .addDestination(Destination.builder().to("01000000000").build())
   .build();
 
-MarsResponse response = client.send(request);
+BizgoResponse response = client.send(request);
 System.out.println("Result: " + response.getData().getResult());
 ```
 
@@ -99,18 +99,18 @@ OMNI API 사용 전 다음을 준비해 주세요:
 ```xml
 <dependency>
     <groupId>io.github.icomm-api</groupId>
-    <artifactId>infobank-omni-sdk-java</artifactId>
-    <version>2.0.0</version>
+    <artifactId>bizgo-sdk-comm-java</artifactId>
+    <version>1.0.0</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```groovy
-implementation 'io.github.icomm-api:infobank-omni-sdk-java:2.0.0'
+implementation 'io.github.icomm-api:bizgo-sdk-comm-java:1.0.0'
 ```
 
-🔍 [Maven Central 검색 바로가기](https://central.sonatype.com/artifact/io.github.icomm-api/infobank-omni-sdk-java)
+🔍 [Maven Central 검색 바로가기](https://central.sonatype.com/artifact/io.github.icomm-api/bizgo-sdk-comm-java)
 
 ---
 
@@ -119,7 +119,7 @@ implementation 'io.github.icomm-api:infobank-omni-sdk-java:2.0.0'
 ### API Key 방식 (권장)
 
 ```java
-InfobankClient client = InfobankClient.builder()
+BizgoClient client = BizgoClient.builder()
   .apiKey("YOUR_API_KEY")
   .build();
 ```
@@ -127,7 +127,7 @@ InfobankClient client = InfobankClient.builder()
 ### OAuth2 방식
 
 ```java
-InfobankClient client = InfobankClient.builder()
+BizgoClient client = BizgoClient.builder()
   .clientId(CLIENT_ID)
   .password(PASSWORD)
   .httpConfig(HttpConfig.builder().baseUrl(BASE_URL).build())
@@ -148,7 +148,7 @@ FileRequest mmsFile = FileRequest.builder()
   .file(file)
   .serviceType(ServiceType.MMS)
   .build();
-MarsResponse mmsUploadRes = client.upload(mmsFile);
+BizgoResponse mmsUploadRes = client.upload(mmsFile);
 String fileKey = mmsUploadRes.getData().getData().getFileKey();
 
 // RCS용 파일 업로드
@@ -156,7 +156,7 @@ FileRequest rcsFile = FileRequest.builder()
   .file(file)
   .serviceType(ServiceType.RCS)
   .build();
-MarsResponse rcsUploadRes = client.upload(rcsFile);
+BizgoResponse rcsUploadRes = client.upload(rcsFile);
 String mediaUrl = rcsUploadRes.getData().getData().getMedia();
 
 // Brandmessage용 파일 업로드
@@ -165,7 +165,7 @@ FileRequest brandFile = FileRequest.builder()
   .serviceType(ServiceType.BRANDMESSAGE)
   .msgType(MsgType.DEFAULT)
   .build();
-MarsResponse brandUploadRes = client.upload(brandFile);
+BizgoResponse brandUploadRes = client.upload(brandFile);
 String imgUrl = brandUploadRes.getData().getData().getImgUrl();
 ```
 
@@ -184,24 +184,16 @@ SmsMessage smsMessage = SmsMessage.builder()
   .text("Test SMS Message")
   .build();
 
-RcsMessage rcsMessage = RcsMessage.builder()
-  .from("0316281500")
-  .body(body)
-  .formatId("RPSSAXX001")
-  .brandKey("YOUR_BRAND_KEY")
-  .build();
-
 Destination destination = Destination.builder()
   .to("01000000000")
   .build();
 
 OmniRequest request = OmniRequest.builder()
-  .addMessage(rcsMessage)
   .addMessage(smsMessage)
   .addDestination(destination)
   .build();
 
-MarsResponse response = client.send(request);
+BizgoResponse response = client.send(request);
 System.out.println("msgKey: " + response.getData().getData()
   .getDestinations().get(0).getMsgKey());
 ```
@@ -217,7 +209,7 @@ FileRequest fileRequest = FileRequest.builder()
   .file(file)
   .serviceType(ServiceType.MMS)
   .build();
-MarsResponse uploadRes = client.upload(fileRequest);
+BizgoResponse uploadRes = client.upload(fileRequest);
 String fileKey = uploadRes.getData().getData().getFileKey();
 
 // 2. MMS 메시지 전송
@@ -237,7 +229,7 @@ OmniRequest request = OmniRequest.builder()
   .addDestination(destination)
   .build();
 
-MarsResponse response = client.send(request);
+BizgoResponse response = client.send(request);
 ```
 
 ---
@@ -259,7 +251,7 @@ OmniRequest request = OmniRequest.builder()
   .addDestination(destination)
   .build();
 
-MarsResponse response = client.send(request);
+BizgoResponse response = client.send(request);
 ```
 
 ---
@@ -293,7 +285,7 @@ OmniRequest request = OmniRequest.builder()
   .addDestination(destination)
   .build();
 
-MarsResponse response = client.send(request);
+BizgoResponse response = client.send(request);
 ```
 
 #### RCS LMS (긴 텍스트)
@@ -326,7 +318,7 @@ FileRequest fileRequest = FileRequest.builder()
   .file(file)
   .serviceType(ServiceType.RCS)
   .build();
-MarsResponse uploadRes = client.upload(fileRequest);
+BizgoResponse uploadRes = client.upload(fileRequest);
 String mediaUrl = uploadRes.getData().getData().getMedia();
 
 // 2. RCS MMS 메시지 전송
@@ -372,7 +364,7 @@ OmniRequest request = OmniRequest.builder()
   .addDestination(destination)
   .build();
 
-MarsResponse response = client.send(request);
+BizgoResponse response = client.send(request);
 ```
 
 #### 카카오페이 알림톡 (AC)
@@ -416,7 +408,7 @@ OmniRequest request = OmniRequest.builder()
   .addDestination(destination)
   .build();
 
-MarsResponse response = client.send(request);
+BizgoResponse response = client.send(request);
 ```
 
 #### Free 타입 (자유 형식)
@@ -468,7 +460,7 @@ OmniRequest request = OmniRequest.builder()
   .addDestination(destination)
   .build();
 
-MarsResponse response = client.send(request);
+BizgoResponse response = client.send(request);
 ```
 
 ---
@@ -495,7 +487,7 @@ OmniRequest request = OmniRequest.builder()
   .addDestination(destination2)
   .build();
 
-MarsResponse response = client.send(request);
+BizgoResponse response = client.send(request);
 ```
 
 ---
@@ -518,7 +510,7 @@ OmniRequest request = OmniRequest.builder()
   .ref("ORDER-12345")  // 참조 필드
   .build();
 
-MarsResponse response = client.send(request);
+BizgoResponse response = client.send(request);
 ```
 
 ---
@@ -526,7 +518,7 @@ MarsResponse response = client.send(request);
 ### 1️⃣1️⃣ 응답 처리
 
 ```java
-MarsResponse response = client.send(request);
+BizgoResponse response = client.send(request);
 
 // 공통부 확인
 System.out.println("authCode: " + response.getCommon().getAuthCode());
@@ -552,7 +544,7 @@ if (response.getData().getData() != null &&
 ### 1️⃣2️⃣ 전송 리포트 조회
 
 ```java
-ReportPollingResponse pollRes = client.get(
+BizgoResponse pollRes = client.get(
   ReportPollingRequest.builder().build());
 String reportId = pollRes.getData().getReportId();
 
@@ -575,7 +567,7 @@ client.get(ReportInquiryRequest.builder()
 | 브랜드 메시지          | `BrandMessage`                        | basic / free 타입 |
 | RCS 메시지             | `RcsMessage`                          | SMS/LMS/MMS 포맷 지원 |
 | **Omni 통합 메시지**   | `OmniRequest`                         | ⭐ **권장** - Failover, 동보 발송 |
-| API Key 인증           | `InfobankClient.builder().apiKey()`   | ⭐ **권장** 인증 방식 |
+| API Key 인증           | `BizgoClient.builder().apiKey()`      | ⭐ **권장** 인증 방식 |
 | OAuth2 인증            | `AuthService#getToken()`              | JWT 토큰 발급 |
 | 파일 업로드            | `client.upload(FileRequest)`          | MMS, RCS, Brandmessage |
 | 전송 리포트 조회       | `ReportInquiryRequest`                | 메시지 상태 추적 |
@@ -586,7 +578,7 @@ client.get(ReportInquiryRequest.builder()
 ## 🔍 주요 링크
 
 - 📖 **API 명세서**: [GitBook](https://infobank-guide.gitbook.io/omni_api)
-- 📦 **Maven Central**: [검색](https://central.sonatype.com/artifact/io.github.icomm-api/infobank-omni-sdk-java)
+- 📦 **Maven Central**: [검색](https://central.sonatype.com/artifact/io.github.icomm-api/bizgo-sdk-comm-java)
 - 📧 **기술 지원**: support@infobank.net
 - 🌐 **Bizgo 콘솔**: [https://bizgo.io](https://bizgo.io)
 
