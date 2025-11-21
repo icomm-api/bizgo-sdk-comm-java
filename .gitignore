@@ -16,4 +16,6 @@ out/
 .DS_Store
 /src/test
 /gradle.prpperties
+/.vscode
 .vscode
+/generate-hash.ps1
