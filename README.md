@@ -3,6 +3,8 @@
 이 레포지토리는 인포뱅크의 **Bizgo Communication API(이하 OMNI API) (통합 메시지 API)** 연동을 위한 **Java용 공식 SDK**입니다.  
 Java 환경에서 쉽고 빠르게 통합 메시지 전송 기능(SMS, LMS, MMS, RCS, 알림톡, 친구톡, 브랜드메시지 등)을 구현할 수 있도록 도와줍니다.
 
+Spring Boot 3.3.4 까지 지원하며, 이후의 버전의 경우 jackson 라이브러리 충돌이 발생될 수 있습니다.
+
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.icomm-api/bizgo-sdk-comm-java.svg)](https://central.sonatype.com/artifact/io.github.icomm-api/bizgo-sdk-comm-java)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE.txt)
 [![Java](https://img.shields.io/badge/Java-8%2B-orange.svg)](https://www.oracle.com/java/technologies/javase-downloads.html)
@@ -14,7 +16,7 @@ Java 환경에서 쉽고 빠르게 통합 메시지 전송 기능(SMS, LMS, MMS,
 ### 1. SDK 설치
 
 ```gradle
-implementation 'io.github.icomm-api:bizgo-sdk-comm-java:1.0.0'
+implementation 'io.github.icomm-api:bizgo-sdk-comm-java:1.0.4'
 ```
 
 ### 2. Client 생성
@@ -100,14 +102,14 @@ OMNI API 사용 전 다음을 준비해 주세요:
 <dependency>
     <groupId>io.github.icomm-api</groupId>
     <artifactId>bizgo-sdk-comm-java</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.4</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```groovy
-implementation 'io.github.icomm-api:bizgo-sdk-comm-java:1.0.0'
+implementation 'io.github.icomm-api:bizgo-sdk-comm-java:1.0.4'
 ```
 
 🔍 [Maven Central 검색 바로가기](https://central.sonatype.com/artifact/io.github.icomm-api/bizgo-sdk-comm-java)
