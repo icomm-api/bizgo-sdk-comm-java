@@ -3,11 +3,12 @@
 이 레포지토리는 인포뱅크의 **Bizgo Communication API(이하 OMNI API) (통합 메시지 API)** 연동을 위한 **Java용 공식 SDK**입니다.  
 Java 환경에서 쉽고 빠르게 통합 메시지 전송 기능(SMS, LMS, MMS, RCS, 알림톡, 친구톡, 브랜드메시지 등)을 구현할 수 있도록 도와줍니다.
 
-Spring Boot 3.3.4 까지 지원하며, 이후의 버전의 경우 jackson 라이브러리 충돌이 발생될 수 있습니다.
+**Spring Boot 3.x 및 4.x 완벽 지원** - Jackson 2.18.x 기반으로 최신 Spring Boot와 호환됩니다.
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.icomm-api/bizgo-sdk-comm-java.svg)](https://central.sonatype.com/artifact/io.github.icomm-api/bizgo-sdk-comm-java)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE.txt)
-[![Java](https://img.shields.io/badge/Java-8%2B-orange.svg)](https://www.oracle.com/java/technologies/javase-downloads.html)
+[![Java](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://www.oracle.com/java/technologies/javase-downloads.html)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x%20%7C%204.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
 
 ---
 
@@ -16,7 +17,7 @@ Spring Boot 3.3.4 까지 지원하며, 이후의 버전의 경우 jackson 라이
 ### 1. SDK 설치
 
 ```gradle
-implementation 'io.github.icomm-api:bizgo-sdk-comm-java:1.0.4'
+implementation 'io.github.icomm-api:bizgo-sdk-comm-java:1.1.0'
 ```
 
 ### 2. Client 생성
@@ -89,7 +90,9 @@ OMNI API 사용 전 다음을 준비해 주세요:
 
 ## ☕ Supported Environment
 
-- Java 8 이상
+- **Java 17 이상** (LTS 권장: Java 17 또는 Java 21)
+- **Spring Boot 3.x / 4.x** 완벽 지원
+- **Jackson 2.18.x** 기반 (고객사 환경의 Jackson 버전 자동 사용)
 - TLS 1.2 이상
 
 ---
@@ -102,14 +105,14 @@ OMNI API 사용 전 다음을 준비해 주세요:
 <dependency>
     <groupId>io.github.icomm-api</groupId>
     <artifactId>bizgo-sdk-comm-java</artifactId>
-    <version>1.0.4</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```groovy
-implementation 'io.github.icomm-api:bizgo-sdk-comm-java:1.0.4'
+implementation 'io.github.icomm-api:bizgo-sdk-comm-java:1.1.0'
 ```
 
 🔍 [Maven Central 검색 바로가기](https://central.sonatype.com/artifact/io.github.icomm-api/bizgo-sdk-comm-java)
@@ -588,12 +591,48 @@ client.get(ReportInquiryRequest.builder()
 
 ## ⚠️ 주의사항
 
-1. **API Key 발급**: Bizgo 콘솔에서 발급받아 사용하세요
-2. **발신번호 등록**: SMS/MMS/RCS 발송 전 필수
-3. **카카오 채널 연동**: 알림톡/친구톡/브랜드메시지 사용 시 필수
-4. **파일 업로드**: 전송 전 반드시 파일을 먼저 업로드하세요
-5. **인코딩**: UTF-8 사용 권장 (MS949 환경에서는 별도 처리 필요)
-6. **방화벽**: API 서버 IP를 방화벽에 허용해야 합니다
+1. **Java 버전**: Java 17 이상 필수 (Java 21 LTS 권장)
+2. **API Key 발급**: Bizgo 콘솔에서 발급받아 사용하세요
+3. **발신번호 등록**: SMS/MMS/RCS 발송 전 필수
+4. **카카오 채널 연동**: 알림톡/친구톡/브랜드메시지 사용 시 필수
+5. **파일 업로드**: 전송 전 반드시 파일을 먼저 업로드하세요
+6. **인코딩**: UTF-8 사용 권장 (MS949 환경에서는 별도 처리 필요)
+7. **방화벽**: API 서버 IP를 방화벽에 허용해야 합니다
+8. **Jackson 호환성**: SDK는 `compileOnly`로 Jackson을 참조하므로, 고객사 프로젝트의 Jackson 버전을 자동으로 사용합니다
+
+---
+
+## 🔄 버전 업그레이드 가이드
+
+### v1.0.x → v1.1.0 마이그레이션
+
+**주요 변경사항:**
+
+1. **Java 버전 요구사항 변경**
+   - 기존: Java 8+
+   - 신규: **Java 17+** (Java 21 LTS 권장)
+
+2. **Spring Boot 호환성 향상**
+   - 기존: Spring Boot 3.3.4까지 지원
+   - 신규: **Spring Boot 3.x / 4.x 완벽 지원**
+
+3. **Jackson 의존성 전략 변경**
+   - 기존: `api` 스코프로 Jackson 2.17.0 포함
+   - 신규: `compileOnly` 스코프로 변경 → **고객사 환경의 Jackson 자동 사용**
+   - Jackson 버전 충돌 문제 완전 해결
+
+4. **HttpClient 업그레이드**
+   - 기존: Apache HttpClient 4.x
+   - 신규: **Apache HttpClient 5.x** (성능 및 보안 개선)
+
+**마이그레이션 체크리스트:**
+
+- [ ] Java 17 이상 설치 확인
+- [ ] `build.gradle` 또는 `pom.xml`에서 SDK 버전을 `1.1.0`으로 변경
+- [ ] 프로젝트에 Jackson 2.15.x 이상이 포함되어 있는지 확인 (Spring Boot 3.x는 자동 포함)
+- [ ] 빌드 및 테스트 실행
+
+**코드 변경 불필요**: API 사용법은 100% 호환됩니다.
 
 ---
 

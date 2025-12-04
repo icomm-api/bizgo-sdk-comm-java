@@ -6,9 +6,9 @@ plugins {
 
 group = "io.github.icomm-api"
 archivesBaseName = "bizgo-sdk-comm-java"
-version = "1.0.4"
-sourceCompatibility = "1.8"
-targetCompatibility = "1.8"
+version = "1.1.0"
+sourceCompatibility = "17"
+targetCompatibility = "17"
 
 repositories {
     mavenCentral()
@@ -16,33 +16,36 @@ repositories {
 
 dependencies {
 
-    api 'com.fasterxml.jackson.core:jackson-core:2.17.0'
-    api 'com.fasterxml.jackson.core:jackson-databind:2.17.0'
-    api 'com.fasterxml.jackson.core:jackson-annotations:2.17.0'
+    compileOnly 'com.fasterxml.jackson.core:jackson-core:2.18.2'
+    compileOnly 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
+    compileOnly 'com.fasterxml.jackson.core:jackson-annotations:2.18.2'
 
     api 'org.apache.httpcomponents:httpclient:4.5.14'
     api 'org.apache.httpcomponents:httpcore:4.4.16'
     api 'org.apache.httpcomponents:httpmime:4.5.14'
 
-    api 'org.apache.tika:tika-core:2.9.1'
+    api 'org.apache.tika:tika-core:2.9.2'
 
-    compileOnly 'org.projectlombok:lombok:1.18.32'
-    annotationProcessor 'org.projectlombok:lombok:1.18.32'
+    compileOnly 'org.projectlombok:lombok:1.18.36'
+    annotationProcessor 'org.projectlombok:lombok:1.18.36'
 }
 
 shadowJar {
-    archiveClassifier.set('')   // ★ shadowJar가 메인 JAR이 됨
+    archiveClassifier.set('')
 
     mergeServiceFiles()
     zip64 true
 
-    // ★ 고객사 Spring Jackson과 충돌 방지
     exclude 'com/fasterxml/jackson/**'
     exclude 'tools/jackson/**'
+
+    exclude 'META-INF/*.SF'
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/*.RSA'
 }
 
 jar {
-    enabled = false   // ★ plain JAR 절대 생성 금지
+    enabled = false
 }
 
 task javadocJar(type: Jar) {
@@ -59,7 +62,7 @@ publishing {
     publications {
         mavenJava(MavenPublication) {
 
-            artifact shadowJar     // ★ shadowJar 1개만 JAR로 등록
+            artifact shadowJar
             artifact sourcesJar
             artifact javadocJar
 
@@ -106,4 +109,8 @@ sourceSets {
 tasks.withType(Javadoc) {
     options.addStringOption('Xdoclint:none', '-quiet')
     failOnError = false
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
 }
