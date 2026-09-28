@@ -1,0 +1,38 @@
+// Code generator used by the generateModels / checkGeneratedModels tasks. Not part of the published library.
+plugins {
+    id 'java'
+}
+
+repositories {
+    mavenCentral()
+}
+
+// buildSrc/gradle.lockfile pins the generator's dependencies (it reads the spec during every build).
+// After changing them run: ./gradlew -p buildSrc resolveAndLockAll --write-locks
+dependencyLocking {
+    lockAllConfigurations()
+}
+
+tasks.register('resolveAndLockAll') {
+    group = 'help'
+    description = 'Resolves every configuration; use with --write-locks to refresh buildSrc/gradle.lockfile.'
+    notCompatibleWithConfigurationCache('resolves all configurations')
+    doFirst {
+        if (!gradle.startParameter.writeDependencyLocks) {
+            throw new GradleException('run with --write-locks')
+        }
+    }
+    doLast {
+        configurations.findAll { it.canBeResolved }.each { it.resolve() }
+    }
+}
+
+dependencies {
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.22.3'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
+    options.encoding = 'UTF-8'
+    options.compilerArgs += ['-Xlint:all', '-Werror']
+}

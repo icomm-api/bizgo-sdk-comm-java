@@ -1,21 +1,41 @@
-*.groovy
-.classpath
-.gradle
-.project
-.settings
-.idea
-/build
-/bin
-/html
-/javadoc
-archive/
-gradle.properties
-/.idea
-*.iml
+# gradle / java
+.gradle/
+build/
+buildSrc/.gradle/
+buildSrc/build/
 out/
+bin/
+*.class
+hs_err_pid*.log
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+
+# secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.gpg
+*.asc
+secrets/
+# local Gradle settings may hold signing keys or Central credentials
+gradle.properties
+local.properties
+
+# OS
 .DS_Store
-/src/test
-/gradle.prpperties
-/.vscode
-.vscode
-/generate-hash.ps1
+Thumbs.db

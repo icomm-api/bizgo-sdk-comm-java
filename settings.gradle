@@ -1,0 +1,10 @@
+rootProject.name = 'bizgo-sdk-comm-java'
+
+// Test helpers for SDK users (FakeTransport, WebhookSigner). Published as a separate artifact.
+include 'bizgo-sdk-comm-java-testing'
+project(':bizgo-sdk-comm-java-testing').projectDir = file('testing')
+
+// Optional OpenTelemetry tracing on top of RequestHook. Separate artifact, so the core keeps Jackson as its only
+// runtime dependency.
+include 'bizgo-sdk-comm-java-opentelemetry'
+project(':bizgo-sdk-comm-java-opentelemetry').projectDir = file('opentelemetry')

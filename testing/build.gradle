@@ -1,0 +1,10 @@
+// bizgo-sdk-comm-java-testing: FakeTransport, RecordedRequest, WebhookSigner. Add it as a *test* dependency.
+description = 'Test helpers for the Bizgo Communication Java SDK (fake transport, request recording, webhook signing)'
+
+dependencies {
+    api project(':')
+
+    testImplementation platform('org.junit:junit-bom:5.14.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}

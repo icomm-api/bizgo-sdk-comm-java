@@ -1,122 +1,332 @@
+import io.github.icommapi.bizgo.codegen.ModelGenerator
+
 plugins {
     id 'java-library'
     id 'maven-publish'
-    id 'com.github.johnrengelman.shadow' version '8.1.1'
+    id 'signing'
 }
 
-group = "io.github.icomm-api"
-archivesBaseName = "bizgo-sdk-comm-java"
-version = "1.1.1"
-sourceCompatibility = "17"
-targetCompatibility = "17"
+group = 'io.github.icomm-api'
+version = '1.2.0'
+description = 'Java SDK for the Bizgo Communication API (SMS/LMS/MMS, RCS, Kakao AlimTalk/BrandMessage, Naver TalkTalk)'
 
-repositories {
-    mavenCentral()
-}
+def jacksonVersion = '2.22.3'
+def generatedDir = layout.projectDirectory.dir('src/generated/java')
 
-dependencies {
+allprojects {
+    repositories {
+        mavenCentral()
+    }
 
-    compileOnly 'com.fasterxml.jackson.core:jackson-core:2.18.2'
-    compileOnly 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
-    compileOnly 'com.fasterxml.jackson.core:jackson-annotations:2.18.2'
+    // gradle.lockfile (one per project) pins every resolved version: builds are reproducible and CI audits them
+    // with osv-scanner. After changing a dependency run: ./gradlew resolveAndLockAll --write-locks
+    dependencyLocking {
+        lockAllConfigurations()
+    }
 
-    api 'org.apache.httpcomponents:httpclient:4.5.14'
-    api 'org.apache.httpcomponents:httpcore:4.4.16'
-    api 'org.apache.httpcomponents:httpmime:4.5.14'
-
-    api 'org.apache.tika:tika-core:2.9.2'
-
-    compileOnly 'org.projectlombok:lombok:1.18.36'
-    annotationProcessor 'org.projectlombok:lombok:1.18.36'
-}
-
-shadowJar {
-    archiveClassifier.set('')
-
-    mergeServiceFiles()
-    zip64 true
-
-    exclude 'com/fasterxml/jackson/**'
-    exclude 'tools/jackson/**'
-
-    exclude 'META-INF/*.SF'
-    exclude 'META-INF/*.DSA'
-    exclude 'META-INF/*.RSA'
-}
-
-jar {
-    enabled = false
-}
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
+    tasks.register('resolveAndLockAll') {
+        group = 'help'
+        description = 'Resolves every configuration; use with --write-locks to refresh gradle.lockfile.'
+        notCompatibleWithConfigurationCache('resolves all configurations')
+        doFirst {
+            if (!gradle.startParameter.writeDependencyLocks) {
+                throw new GradleException('run with --write-locks')
+            }
+        }
+        doLast {
+            configurations.findAll { it.canBeResolved }.each { it.resolve() }
+        }
     }
 }
 
-task javadocJar(type: Jar) {
-    archiveClassifier.set('javadoc')
-    from javadoc
+// Release artifacts are always signed: publishing to the staging repository without SIGNING_KEY fails instead of
+// silently producing unsigned artifacts (the release workflow provides the key from the maven-central environment).
+gradle.taskGraph.whenReady { graph ->
+    def publishing = graph.allTasks.any { it.name.endsWith('ToStagingRepository') }
+    if (publishing && !providers.environmentVariable('SIGNING_KEY').getOrElse('').trim()) {
+        throw new GradleException('SIGNING_KEY가 없어 배포 산출물에 서명할 수 없습니다. 서명 없는 배포는 허용하지 않습니다.')
+    }
 }
 
-task sourcesJar(type: Jar) {
-    archiveClassifier.set('sources')
-    from sourceSets.main.allSource
+// Shared setup of the optional modules (testing, opentelemetry). Each adds its dependencies in its build.gradle.
+subprojects {
+    apply plugin: 'java-library'
+    apply plugin: 'maven-publish'
+    apply plugin: 'signing'
+
+    group = rootProject.group
+    version = rootProject.version
+
+    java {
+        withSourcesJar()
+        withJavadocJar()
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.release = 17
+        options.encoding = 'UTF-8'
+        options.compilerArgs += ['-Xlint:all', '-Werror']
+    }
+
+    tasks.named('javadoc', Javadoc) {
+        options.encoding = 'UTF-8'
+        options.charSet = 'UTF-8'
+        options.docEncoding = 'UTF-8'
+        options.addStringOption('Xdoclint:all,-missing', '-quiet')
+    }
+
+    tasks.withType(AbstractArchiveTask).configureEach {
+        preserveFileTimestamps = false
+        reproducibleFileOrder = true
+    }
+
+    tasks.named('test', Test) {
+        useJUnitPlatform()
+        environment 'BIZGO_API_KEY', ''
+        testLogging {
+            events = ['failed']
+            exceptionFormat = 'full'
+        }
+    }
+
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                artifactId = project.name
+                from components.java
+                pom {
+                    name = project.name
+                    description = project.description
+                    url = 'https://github.com/icomm-api/bizgo-sdk-comm-java'
+                    licenses {
+                        license {
+                            name = 'Apache-2.0'
+                            url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                            distribution = 'repo'
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = 'icomm-api'
+                            name = 'Infobank'
+                            organization = 'Infobank'
+                            organizationUrl = 'https://github.com/icomm-api'
+                        }
+                    }
+                    scm {
+                        connection = 'scm:git:https://github.com/icomm-api/bizgo-sdk-comm-java.git'
+                        developerConnection = 'scm:git:ssh://git@github.com/icomm-api/bizgo-sdk-comm-java.git'
+                        url = 'https://github.com/icomm-api/bizgo-sdk-comm-java'
+                    }
+                }
+            }
+        }
+        repositories {
+            maven {
+                name = 'staging'
+                url = rootProject.layout.buildDirectory.dir('staging-deploy')
+            }
+        }
+    }
+
+    signing {
+        def signingKey = providers.environmentVariable('SIGNING_KEY').orNull
+        def signingPassword = providers.environmentVariable('SIGNING_PASSWORD').orNull
+        required = { signingKey != null }
+        if (signingKey != null) {
+            useInMemoryPgpKeys(signingKey, signingPassword)
+            sign publishing.publications.mavenJava
+        }
+    }
 }
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir generatedDir
+        }
+    }
+    // Runnable examples. They are compiled and executed against a mock server by the tests.
+    examples {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+
+configurations {
+    examplesImplementation.extendsFrom implementation
+    examplesRuntimeOnly.extendsFrom runtimeOnly
+}
+
+dependencies {
+    // The only runtime dependency. Models use Jackson annotations, and APIException exposes the body as JsonNode.
+    api "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
+
+    testImplementation sourceSets.examples.output
+    // FakeTransport for the "every operation is reachable" tests (the testing module depends on main only)
+    testImplementation project(':bizgo-sdk-comm-java-testing')
+    testImplementation platform('org.junit:junit-bom:5.14.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // test only: read spec/openapi.yaml for the spec example round-trip tests
+    testImplementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${jacksonVersion}"
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
+    options.encoding = 'UTF-8'
+    options.compilerArgs += ['-Xlint:all', '-Werror']
+}
+
+tasks.named('javadoc', Javadoc) {
+    options.encoding = 'UTF-8'
+    options.charSet = 'UTF-8'
+    options.docEncoding = 'UTF-8'
+    options.addStringOption('Xdoclint:all,-missing', '-quiet')
+    exclude 'io/github/icommapi/bizgo/internal/**'
+}
+
+tasks.named('jar', Jar) {
+    manifest {
+        attributes(
+                'Automatic-Module-Name': 'io.github.icommapi.bizgo',
+                'Implementation-Title': project.name,
+                'Implementation-Version': project.version)
+    }
+}
+
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+
+tasks.named('test', Test) {
+    useJUnitPlatform()
+    systemProperty 'bizgo.version', project.version
+    // Tests never read a real key: clear it even if the developer has one set.
+    environment 'BIZGO_API_KEY', ''
+    testLogging {
+        events = ['failed']
+        exceptionFormat = 'full'
+    }
+}
+
+// ---------------------------------------------------------------- generated models
+
+tasks.register('generateModels') {
+    group = 'build'
+    description = 'Regenerates src/generated/java from spec/openapi.yaml and spec/error-codes.json.'
+    // Writes into a source directory on purpose (the generated code is committed), so no outputs are declared.
+    outputs.upToDateWhen { false }
+    doLast {
+        def root = generatedDir.asFile.toPath()
+        def sources = ModelGenerator.generate(file('spec/openapi.yaml').toPath(), file('spec/error-codes.json').toPath(), file('src/main/java').toPath())
+        ModelGenerator.existing(root).each { rel ->
+            if (!sources.containsKey(rel)) {
+                java.nio.file.Files.delete(root.resolve(rel))
+            }
+        }
+        sources.each { rel, content ->
+            def target = root.resolve(rel)
+            java.nio.file.Files.createDirectories(target.parent)
+            java.nio.file.Files.writeString(target, content)
+        }
+        logger.lifecycle("generated ${sources.size()} files in src/generated/java")
+    }
+}
+
+tasks.register('checkGeneratedModels') {
+    group = 'verification'
+    description = 'Fails if src/generated/java differs from what the spec generates.'
+    inputs.files('spec/openapi.yaml', 'spec/error-codes.json')
+    inputs.dir(generatedDir)
+    inputs.dir('src/main/java')   // hand-written methods win over generated ones
+    def marker = layout.buildDirectory.file('checkGeneratedModels.ok')
+    outputs.file(marker)
+    doLast {
+        def root = generatedDir.asFile.toPath()
+        def sources = ModelGenerator.generate(file('spec/openapi.yaml').toPath(), file('spec/error-codes.json').toPath(), file('src/main/java').toPath())
+        def problems = []
+        def existing = ModelGenerator.existing(root)
+        existing.findAll { !sources.containsKey(it) }.each { problems << "stale: ${it}" }
+        sources.each { rel, content ->
+            if (!existing.contains(rel)) {
+                problems << "missing: ${rel}"
+            } else if (java.nio.file.Files.readString(root.resolve(rel)).replace('\r\n', '\n') != content) {
+                problems << "differs: ${rel}"
+            }
+        }
+        if (!problems.isEmpty()) {
+            throw new GradleException("Generated models are out of date (run ./gradlew generateModels):\n  " + problems.join('\n  '))
+        }
+        java.nio.file.Files.writeString(marker.get().asFile.toPath(), 'ok')
+    }
+}
+
+tasks.named('check') {
+    dependsOn 'checkGeneratedModels'
+}
+
+// ---------------------------------------------------------------- publishing
 
 publishing {
     publications {
         mavenJava(MavenPublication) {
-
-            artifact shadowJar
-            artifact sourcesJar
-            artifact javadocJar
-
+            artifactId = 'bizgo-sdk-comm-java'
+            from components.java
             pom {
-                name = "Bizgo Communication JAVA SDK"
-                description = "Official Java SDK for Bizgo Communication API"
-                url = "https://github.com/icomm-api/infobank-omni-sdk-java"
-                packaging = "jar"
-
+                name = 'Bizgo Communication Java SDK'
+                description = project.description
+                url = 'https://github.com/icomm-api/bizgo-sdk-comm-java'
                 licenses {
                     license {
-                        name = "The Apache License, Version 2.0"
-                        url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                        name = 'Apache-2.0'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                        distribution = 'repo'
                     }
                 }
                 developers {
                     developer {
-                        id = "bizgo"
-                        name = "Infobank DevOps Team"
-                        email = "api@infobank.net"
+                        id = 'icomm-api'
+                        name = 'Infobank'
+                        organization = 'Infobank'
+                        organizationUrl = 'https://github.com/icomm-api'
                     }
                 }
                 scm {
-                    connection = "scm:git:https://github.com/icomm-api/infobank-omni-sdk-java.git"
-                    developerConnection = "scm:git:ssh://github.com/icomm-api/infobank-omni-sdk-java.git"
-                    url = "https://github.com/icomm-api/infobank-omni-sdk-java"
+                    connection = 'scm:git:https://github.com/icomm-api/bizgo-sdk-comm-java.git'
+                    developerConnection = 'scm:git:ssh://git@github.com/icomm-api/bizgo-sdk-comm-java.git'
+                    url = 'https://github.com/icomm-api/bizgo-sdk-comm-java'
+                }
+                issueManagement {
+                    system = 'GitHub'
+                    url = 'https://github.com/icomm-api/bizgo-sdk-comm-java/issues'
                 }
             }
         }
     }
-}
-
-sourceSets {
-    test {
-        java {
-            srcDirs = ['src/test/java']
-        }
-        resources {
-            srcDirs = ['src/test/resources']
+    repositories {
+        // The release workflow publishes into this directory, zips it and uploads the bundle to the
+        // Maven Central Portal. Nothing is uploaded from a developer machine.
+        maven {
+            name = 'staging'
+            url = layout.buildDirectory.dir('staging-deploy')
         }
     }
 }
 
-tasks.withType(Javadoc) {
-    options.addStringOption('Xdoclint:none', '-quiet')
-    failOnError = false
-}
-
-tasks.withType(JavaCompile) {
-    options.encoding = 'UTF-8'
+signing {
+    // Only the release workflow provides the key (GitHub environment secrets, see .github/workflows/release.yml).
+    def signingKey = providers.environmentVariable('SIGNING_KEY').orNull
+    def signingPassword = providers.environmentVariable('SIGNING_PASSWORD').orNull
+    required = { signingKey != null }
+    if (signingKey != null) {
+        useInMemoryPgpKeys(signingKey, signingPassword)
+        sign publishing.publications.mavenJava
+    }
 }

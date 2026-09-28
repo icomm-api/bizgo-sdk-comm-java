@@ -1,0 +1,109 @@
+# bizgo-sdk-comm-java
+
+> Java SDK for the Bizgo Communication API (Korea): SMS/LMS/MMS, international SMS, RCS, Kakao AlimTalk/BrandMessage, Naver TalkTalk, plus the whole management API (reservations, templates, sender profiles, insights, counsel talk) generated from the OpenAPI spec. Maven `io.github.icomm-api:bizgo-sdk-comm-java:1.2.0`, package `io.github.icommapi.bizgo`. Java >= 17. Only runtime dependency: jackson-databind.
+
+## Rules for generated code
+
+- Read the API key from the environment: `Bizgo.builder().build()` uses `BIZGO_API_KEY`. Never hard-code keys, never put them in client-side code. The key is sent raw (no `Bearer`/`ApiKey` prefix); the SDK does this.
+- Use `.environment(Environment.SANDBOX)` for tests (no real delivery). Default is PRODUCTION.
+- `Bizgo` is thread-safe and `AutoCloseable`; create one per API key and reuse it.
+- Every channel is sent with `client.send().omni(to, messages...)`. Put fallback channels after the primary one: `omni("01000000000", alimtalk, sms)`.
+- Models are immutable builders: `SmsMessage.builder().from("...").text("...").build()`. Field names are the API names (`from`, `senderKey`, `templateCode`). Code values are strings (`msgType("AT")`), validated in `build()`.
+- Conditionally required fields (spec `x-sdk-required-if`) are checked before sending (`ValidationException`, never sent). AlimTalk full send (no `sendType` or not `template`) needs `msgType("AT")` (text; `AI` = image) and `text` (server: A523 otherwise); reuse the template's `AlimtalkTemplate.getMsgType()`. `sendType("template")` needs no `msgType`/`text` but every `Destination` needs `replaceWords` (checked when the whole `SendOmniRequest`/`ReservationCreateRequest` is built: `omni`, `bulk`, `fromJson`/`fromMap`). Others: BrandMessage `sendType` basic/free -> `msgType`, basic/template -> `templateCode`+`targeting`; buttons `WL` -> `urlPc`+`urlMobile`, `AL` -> `urlMobile`; RCS `header("1")` -> `footer`; counsel plain `FILE` -> `attachment.file.fileName/fileSize`, rich per `msgType`.
+- AlimTalk example: `AlimtalkMessage.builder().senderKey(senderKey).templateCode(code).msgType("AT").text("...").build()`.
+- LMS and MMS both use `MmsMessage`; MMS when `fileKey(...)` is set (upload with `client.files().uploadMms(Path)` first, max 3 keys, jpg <= 300KB).
+- SMS text <= 90 bytes, LMS/MMS <= 2000 bytes, counted in EUC-KR (Hangul = 2 bytes). Emoji are rejected. `MessageBytes.euckr(text)` returns the byte count. Validation happens before sending and throws `ValidationException`.
+- Max 200 recipients per request. Split larger lists.
+- Pass `SendOptions.idempotencyKey("...")` (or `SendOptions.builder()...`) on sends that may be retried; without it, sends are not retried after timeouts or 5xx (to avoid duplicates). With a key and no `idempotencyTtl`, the SDK sends `idempotencyTtl` 86400 (`Bizgo.DEFAULT_IDEMPOTENCY_TTL`; Bizgo rejects a key without a TTL with A309). An explicit TTL (0-86400, including 0) is sent as given; no key means no TTL is added. The same applies to `send().request(...)`, `bulk` chunks and generated operations whose body has both fields; your objects/maps are not changed.
+- A successful send only means *accepted*. Check `result.getFailed()` for rejected recipients (recipients already accepted earlier with the same `idempotencyKey` come back with per-recipient code `A301` in `result.getDuplicates()`, not in `getFailed()`/`getSucceeded()`, so retrying with the same key is safe), and get final delivery results from reports (`client.reports().consume(handler)` or webhooks).
+- Substitution: text contains `#{name}`; values go in `Destination.builder().to("...").replaceWords(Map.of("name", "...")).build()` and `omni(List<Destination>, List<ChannelMessage>, SendOptions)`.
+- All exceptions are unchecked (`BizgoException`). Do not wrap SDK calls in `catch (Exception e)` just to satisfy the compiler.
+- Every other API operation (146 in total) is a generated method: `client.<resource>().<sub>().<method>(pathParams..., requestModel, XxxParams)`. Query parameters use `io.github.icommapi.bizgo.params.<OperationId>Params.builder()...build()` (required values validated). Paginated lists also have `iter<Method>(...)` / `stream<Method>(...)`. Do not build URLs or JSON by hand.
+- More than 200 recipients: use `client.send().bulk(numbers, List.of(message), BulkOptions.builder().idempotencyKeyPrefix("campaign-1").build())`; check `result.getErrors()` (index ranges) and `result.getFailed()`; recipients already accepted by an earlier run are in `result.getDuplicates()` (an all-A301 chunk is not an error). Re-run with the same list, prefix and chunkSize (keys are `<prefix>-<chunkSize>-<startIndex>-<hash8>`), or resend only the failed chunks' index ranges. Catch `BulkSendException` (fatal error/interrupt) and read `getPartialResult()`.
+- `DuplicateRequestException.isAlreadyAccepted()` true = an earlier attempt of a retried call was accepted: do not send again. `InvalidResponseException` on a send may mean it was accepted: check status before resending.
+- Do not pass an `HttpClient` with an `Authenticator`, a `CookieHandler` or redirects on (rejected). For a proxy or a company CA use `Bizgo.builder().proxy(new InetSocketAddress(host, port))` / `.sslContext(sslContext)`. A custom `HttpTransport` needs `.trustHttpTransport(true)` (not needed for `FakeTransport`); never disable TLS verification.
+- Successful calls never return null: missing data gives an empty object or an empty list.
+- The client rate-limits itself per instance: send APIs (operations marked `x-sdk-rate: send`: send.*, reservation/recipient creation, brand message group send, counsel plain/rich sends) at 200 **messages (recipients)** per second — a 200-recipient request uses a whole second — and other APIs at 5 requests/s. The account limit is shared by all processes using the key: lower it with `.rateLimit(RateLimit.of(send, other))` when several instances run.
+- Every request carries `User-Agent: bizgo-sdk-comm-java/<ver> java/<ver> (<os>; <arch>)` and `X-Bizgo-Client`. Optional `.appInfo("myshop", "1.4.2")` (letters, digits, `._-`; version also `+`) — never put personal data there.
+- Counsel (상담톡) webhooks carry no signature (signatures apply only to report and MO webhooks). The counsel parsers do not check signature headers (ignored if present), only the body limits (size, JSON depth 64, types), and need no secret: `WebhookReceiver.parseCounselMessage(rawBody)` etc. Answer with `Webhooks.counselAckJson()`. Serve the endpoint over HTTPS behind the Bizgo source-IP allow-list.
+- In tests of code that uses the SDK, use `io.github.icommapi.bizgo.testing.FakeTransport` (artifact `bizgo-sdk-comm-java-testing`, test scope): `Bizgo client = fake.client()`; never call the real API or use a real key in tests.
+
+## Quick reference
+
+```java
+import io.github.icommapi.bizgo.*;            // Bizgo, Environment, SendOptions, BulkOptions, RateLimit, RequestHook, Operation, HistoryQuery, MoHistoryQuery, FileUpload, BrandImageKind
+import io.github.icommapi.bizgo.params.*;     // generated query parameter classes, e.g. ListAlimtalkTemplatesParams
+import io.github.icommapi.bizgo.models.*;     // SmsMessage, MmsMessage, AlimtalkMessage, BrandMessage, RcsMessage, InternationalMessage, NaverTalkMessage, Destination, SendResult, ...
+import io.github.icommapi.bizgo.errors.*;
+import io.github.icommapi.bizgo.webhooks.*;   // WebhookReceiver, Webhooks
+
+Bizgo client = Bizgo.builder().environment(Environment.SANDBOX).build();   // .apiKey(..) .timeout(Duration) .maxRetries(int) .httpClient(HttpClient)
+
+client.send().sms(to, from, text) / sms(to, from, text, SendOptions)                  // -> SendResult
+client.send().lms(to, from, text) / lms(to, from, text, title, SendOptions)
+client.send().mms(to, from, text, List<String> fileKeys) / mms(to, from, text, fileKeys, title, SendOptions)
+client.send().omni(String to, ChannelMessage... messages)
+client.send().omni(Collection<String> to, ChannelMessage... messages)
+client.send().omni(String | Collection<String> | List<Destination> to, List<? extends ChannelMessage> messages, SendOptions options)
+client.send().request(SendOmniRequest.fromJson(json))                                 // raw body, validated
+SendResult: getMsgKeys(), getSucceeded(), getDuplicates(), getFailed(), getDestinations(), getRef(), getTrackingId()
+
+client.files().uploadMms(Path | FileUpload)                                           // -> getFileKey(), getExpired()
+client.files().uploadRcs(Path | FileUpload)                                           // -> getMedia()
+client.files().uploadBrandMessage(Path | FileUpload, BrandImageKind.DEFAULT|WIDE|WIDE_ITEM_LIST|WIDE_ITEM_LIST_FIRST|CAROUSEL_FEED|CAROUSEL_COMMERCE)  // -> getImgUrl()
+
+client.reports().poll() -> ReportBatch; client.reports().ack(reportId); client.reports().consume(Consumer<List<Report>>) -> int
+client.reports().inquiry(msgKey) -> List<Report>
+
+client.messages().status(msgKey) / statusByRequestId(requestId) -> List<MessageStatus>
+client.messages().statistics(LocalDate start, LocalDate end, String serviceType, String groupKey) -> List<MessageStatistics>
+client.messages().history(HistoryQuery) -> MessagePage; iterHistory(HistoryQuery) -> Iterable; streamHistory(HistoryQuery) -> Stream
+    HistoryQuery.since(LocalDateTime /*KST*/ | OffsetDateTime | ZonedDateTime | Instant | String).serviceTypes("SMS","ALIMTALK").groupKey(..).limit(1..1000)
+client.messages().mo(msgKey); moHistory(MoHistoryQuery); iterMoHistory(..); streamMoHistory(..)
+    MoHistoryQuery.since(...).from(..).to(..).limit(..)
+
+// generated resources (examples)
+client.reservations().create(ReservationCreateRequest) -> SendOmniResult; .list(ListReservationsParams) / iterList / streamList; .get(resvKey); .cancel(resvKey); .pause(resvKey); .resume(resvKey)
+client.reservations().recipients().create(resvKey, ReservationRecipientCreateRequest); .list(resvKey, params); .delete(resvKey, msgKey)
+client.alimtalk().templates().get(GetAlimtalkTemplateParams) -> AlimtalkTemplate; .create/.update(AlimtalkTemplateSaveRequest); .list(ListAlimtalkTemplatesParams) / iterList; .delete(senderKey, templateCode); .requestInspection(...)
+client.kakao().senders() / categories() / groups() / sanctions(); client.brandMessage().groupSends() / templates() / friendGroups() / videos() / audience() ...
+client.rcs().brands() / chatbots() / templates() / templateForms() / commonFormats() / templateImages(); client.insights().alimtalk() / brandMessage() / rcs()
+client.counsel().messages().sendPlain(CounselPlainMessageRequest) / sendRich(...); counsel().sessions() / users() / channels() / files() / systemMessages() / consultTime() / certs()
+Operation.all() -> every operation: getOperationId(), getResourceMethod(), getHttpMethod(), getPathTemplate(), getRetryPolicy(), getRateBucket(), getPaginationStyle()
+
+client.send().bulk(Collection<String> | List<Destination> to, List<? extends ChannelMessage> messages, BulkOptions) -> BulkSendResult
+    BulkOptions.builder().chunkSize(1..200).concurrency(4).idempotencyKeyPrefix("p").idempotencyTtl(null)   // keys "p-<chunkSize>-<startIndex>-<hash8>", prefix <= 176 chars; TTL default 86400 when a prefix is set
+    BulkSendResult: getResults() (chunk -> SendResult), getErrors() (chunkIndex, fromIndex, toIndex, error), getSucceeded(), getDuplicates(), getFailed(), getMsgKeys()
+
+Bizgo.builder().rateLimit(RateLimit.of(200 /*messages/s*/, 5 /*requests/s*/) | null).appInfo(name, version).hook(RequestHook).httpTransport(HttpTransport)
+RequestHook.onRequestStart/onRequestEnd(RequestEvent): getOperationId(), getResourceMethod(), getPathTemplate(), getStatus(), getErrorLayer(), getErrorCode(), getAttempts(), getDuration()   // never bodies, queries or values
+OpenTelemetry (artifact bizgo-sdk-comm-java-opentelemetry): .hook(BizgoTracing.create(openTelemetry))
+
+// testing (artifact bizgo-sdk-comm-java-testing)
+FakeTransport fake = new FakeTransport(); Bizgo client = fake.client();
+fake.on("sendOmni").thenFail(ErrorLayer.SERVICE, 429, "A020").thenSendResult("A000", "A306"); fake.on("listReservations").thenData("{...}");
+fake.requests() / lastRequest(): getOperationId(), getMethod(), getPath(), getQuery(), getJsonBody()
+WebhookSigner.sign(secret, payloadJson) -> SignedWebhook(headers(), body())
+
+WebhookReceiver receiver = new WebhookReceiver(System.getenv("BIZGO_WEBHOOK_SECRET"));
+// the webhook secret is obtained by requesting it from Bizgo; report/mo verify X-IB-Signature = HMAC-SHA256(secret, X-IB-Timestamp), hex or base64
+ReportWebhookPayload report = receiver.report(headers, rawBody);  // throws WebhookVerificationException -> answer 401
+return Webhooks.ackJson(report.getMsgKey());                      // {"msgKey": ...} within 5 seconds; dedupe by msgKey
+CounselMessageWebhookPayload m = WebhookReceiver.parseCounselMessage(rawBody);   // no signature, no secret; also parseCounselResult, parseCounselReference, parseCounselExpiredSession, parseCounselSeenInfo, parseCounselPersonalInfo, parseCounselCertResult
+// with a receiver: receiver.counselMessage(headers, rawBody) gives the same result (headers are not checked)
+return Webhooks.counselAckJson();                                  // {"code":"A000","result":"Success"}
+```
+
+## Errors
+
+`BizgoException` > `ConfigurationException`, `ValidationException` (`getViolations()`), `ApiConnectionException` (> `ApiTimeoutException`), `ApiException` (> `BadRequestException`, `AuthenticationException`, `PermissionDeniedException`, `NotFoundException`, `DuplicateRequestException`, `RateLimitException`, `InternalServerException`), `InvalidResponseException`, `WebhookVerificationException`.
+`ApiException` has `getHttpStatus()`, `getCode()`, `getLayer()` (GATEWAY = common.authCode, SERVICE = data.code; the same code differs by layer), `getDescription()` (Korean), `getTrackingId()`.
+`AuthenticationException` usually means a wrong key or an unregistered caller IP.
+
+## Links
+
+- [README](https://github.com/icomm-api/bizgo-sdk-comm-java/blob/main/README.md)
+- [Examples](https://github.com/icomm-api/bizgo-sdk-comm-java/tree/main/src/examples/java/examples)
+- [OpenAPI spec](https://github.com/icomm-api/bizgo-api-spec/blob/main/dist/openapi.yaml)
+- [Bizgo API reference](https://developers.bizgo.io/api-sdk/api-reference)
+- [Error codes](https://developers.bizgo.io/api-sdk/api-reference/error-codes)
