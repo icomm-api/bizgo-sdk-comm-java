@@ -1,0 +1,122 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+}
+
+group = "io.github.icomm-api"
+archivesBaseName = "bizgo-sdk-comm-java"
+version = "1.1.1"
+sourceCompatibility = "17"
+targetCompatibility = "17"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+
+    compileOnly 'com.fasterxml.jackson.core:jackson-core:2.18.2'
+    compileOnly 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
+    compileOnly 'com.fasterxml.jackson.core:jackson-annotations:2.18.2'
+
+    api 'org.apache.httpcomponents:httpclient:4.5.14'
+    api 'org.apache.httpcomponents:httpcore:4.4.16'
+    api 'org.apache.httpcomponents:httpmime:4.5.14'
+
+    api 'org.apache.tika:tika-core:2.9.2'
+
+    compileOnly 'org.projectlombok:lombok:1.18.36'
+    annotationProcessor 'org.projectlombok:lombok:1.18.36'
+}
+
+shadowJar {
+    archiveClassifier.set('')
+
+    mergeServiceFiles()
+    zip64 true
+
+    exclude 'com/fasterxml/jackson/**'
+    exclude 'tools/jackson/**'
+
+    exclude 'META-INF/*.SF'
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/*.RSA'
+}
+
+jar {
+    enabled = false
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+task javadocJar(type: Jar) {
+    archiveClassifier.set('javadoc')
+    from javadoc
+}
+
+task sourcesJar(type: Jar) {
+    archiveClassifier.set('sources')
+    from sourceSets.main.allSource
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+
+            artifact shadowJar
+            artifact sourcesJar
+            artifact javadocJar
+
+            pom {
+                name = "Bizgo Communication JAVA SDK"
+                description = "Official Java SDK for Bizgo Communication API"
+                url = "https://github.com/icomm-api/infobank-omni-sdk-java"
+                packaging = "jar"
+
+                licenses {
+                    license {
+                        name = "The Apache License, Version 2.0"
+                        url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                    }
+                }
+                developers {
+                    developer {
+                        id = "bizgo"
+                        name = "Infobank DevOps Team"
+                        email = "api@infobank.net"
+                    }
+                }
+                scm {
+                    connection = "scm:git:https://github.com/icomm-api/infobank-omni-sdk-java.git"
+                    developerConnection = "scm:git:ssh://github.com/icomm-api/infobank-omni-sdk-java.git"
+                    url = "https://github.com/icomm-api/infobank-omni-sdk-java"
+                }
+            }
+        }
+    }
+}
+
+sourceSets {
+    test {
+        java {
+            srcDirs = ['src/test/java']
+        }
+        resources {
+            srcDirs = ['src/test/resources']
+        }
+    }
+}
+
+tasks.withType(Javadoc) {
+    options.addStringOption('Xdoclint:none', '-quiet')
+    failOnError = false
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
