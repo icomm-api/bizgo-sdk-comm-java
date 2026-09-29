@@ -1,0 +1,3 @@
+# gitleaks: 이력(재작성 불가)에 남은 placeholder 값의 fingerprint만 허용합니다. 규칙은 완화하지 않습니다.
+# 7532fc7 README.md:486 — 예시 수신번호 placeholder(뒤 8자리가 모두 같은 숫자, 실제 번호 아님), 현재 README에는 없음
+7532fc7f6bcb026a5018fee2d7f14f2e92224df7:README.md:kr-mobile-number:486
