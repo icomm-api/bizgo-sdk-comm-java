@@ -4,7 +4,7 @@ description = 'Test helpers for the Bizgo Communication Java SDK (fake transport
 dependencies {
     api project(':')
 
-    testImplementation platform('org.junit:junit-bom:5.14.4')
+    testImplementation platform('org.junit:junit-bom:6.1.3')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }

@@ -171,7 +171,7 @@ dependencies {
     testImplementation sourceSets.examples.output
     // FakeTransport for the "every operation is reachable" tests (the testing module depends on main only)
     testImplementation project(':bizgo-sdk-comm-java-testing')
-    testImplementation platform('org.junit:junit-bom:5.14.4')
+    testImplementation platform('org.junit:junit-bom:6.1.3')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     // test only: read spec/openapi.yaml for the spec example round-trip tests
