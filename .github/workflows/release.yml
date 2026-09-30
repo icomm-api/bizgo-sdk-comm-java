@@ -19,6 +19,9 @@ name: release
 on:
   push:
     tags: ["v*"]
+  # 재실행용: Actions > release > Run workflow 에서 "Use workflow from"을 v* 태그로 고릅니다.
+  # 브랜치에서 실행하면 버전 검사와 maven-central environment(태그 v*만 허용)에서 막힙니다.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -56,6 +59,18 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+      - name: 서명 키 진단 (값은 출력하지 않음)
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: |
+          gpg --version | head -n 1
+          echo "헤더:"; printf '%s' "$SIGNING_KEY" | head -c 40 | head -n 1   # 기대값 -----BEGIN PGP PRIVATE KEY BLOCK-----
+          echo "줄 수: $(printf '%s' "$SIGNING_KEY" | wc -l)"                  # 0이면 개행 유실
+          printf '%s' "$SIGNING_KEY" | gpg --batch --import
+          echo "보호 방식:"; printf '%s' "$SIGNING_KEY" | gpg --list-packets 2>/dev/null | grep -Ei 'version|protect|s2k|aead|ocb' | sort -u || true
+          # passphrase 확인: 파이프(fd)로만 전달하고 서명 결과는 버립니다.
+          echo test | gpg --batch --yes --pinentry-mode loopback --passphrase-file <(printf '%s' "$SIGNING_PASSWORD")             --clearsign >/dev/null && echo "passphrase OK" || echo "passphrase로 서명 실패" >&2
       - name: 서명하고 로컬 staging 디렉터리에 게시
         env:
           SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
@@ -63,7 +78,7 @@ jobs:
         run: |
           # 서명 키가 없으면 실패합니다(서명 없는 산출물을 배포하지 않음). build.gradle도 같은 검사를 합니다.
           test -n "${SIGNING_KEY}" || { echo "SIGNING_KEY secret이 없습니다" >&2; exit 1; }
-          ./gradlew --no-daemon clean publishAllPublicationsToStagingRepository   # 코어 + testing + opentelemetry
+          ./gradlew --no-daemon --stacktrace clean publishAllPublicationsToStagingRepository   # 코어 + testing + opentelemetry
       - name: 번들 만들기
         run: |
           cd build/staging-deploy

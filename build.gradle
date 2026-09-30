@@ -96,7 +96,8 @@ subprojects {
                 from components.java
                 pom {
                     name = project.name
-                    description = project.description
+                    // Lazy: this block runs before each module's build.gradle sets its description.
+                    description = provider { project.description }
                     url = 'https://github.com/icomm-api/bizgo-sdk-comm-java'
                     licenses {
                         license {
