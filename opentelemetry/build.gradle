@@ -1,7 +1,7 @@
 // bizgo-sdk-comm-java-opentelemetry: RequestHook that creates OpenTelemetry client spans. Optional.
 description = 'OpenTelemetry tracing for the Bizgo Communication Java SDK'
 
-def otelVersion = '1.66.0'
+def otelVersion = '1.67.0'
 
 dependencies {
     api project(':')
