@@ -28,7 +28,7 @@ tasks.register('resolveAndLockAll') {
 }
 
 dependencies {
-    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.22.3'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.22.4'
 }
 
 tasks.withType(JavaCompile).configureEach {
